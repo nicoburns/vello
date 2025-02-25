@@ -11,7 +11,7 @@ use skrifa::{
     MetadataProvider,
     raw::{FileRef, FontRef},
 };
-use vello::kurbo::Affine;
+use vello::kurbo::{Affine, Vec2};
 use vello::peniko::{Blob, Brush, BrushRef, Fill, FontData, StyleRef, color::palette};
 use vello::{Glyph, Scene};
 
@@ -170,9 +170,13 @@ impl SimpleText {
         let glyph_metrics = font_ref.glyph_metrics(font_size, &var_loc);
         let mut pen_x = 0_f32;
         let mut pen_y = 0_f32;
+        let fs = f64::from(size);
+        let dilation = Vec2::new((0.015125 * fs).min(0.3), (0.0121 * fs).min(0.3));
+
         scene
             .draw_glyphs(font)
             .font_size(size)
+            .embolden(dilation)
             .transform(transform)
             .glyph_transform(glyph_transform)
             .normalized_coords(bytemuck::cast_slice(var_loc.coords()))
