@@ -41,7 +41,7 @@ use alloc::vec::Vec;
 #[cfg(feature = "png")]
 use std::io::{BufRead, Seek};
 
-use peniko::color::{PremulRgba8, Rgba8};
+use color::{PremulRgba8, Rgba8};
 
 /// A pixmap of premultiplied RGBA8 values backed by [`u8`][core::u8].
 #[derive(Debug, Clone)]

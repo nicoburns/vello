@@ -18,16 +18,16 @@ targets = []
 
 [dependencies]
 bytemuck = { workspace = true, features = ["derive"] }
-peniko = { workspace = true, features = ["bytemuck"] }
+color = { workspace = true, features = ["bytemuck"] }
 png = { workspace = true, optional = true }
 
 [features]
 # If adding new features, also document in `src/lib.rs`
 default = ["std", "png"]
 # Get floating point functions from the standard library (likely using your target's libc).
-std = ["peniko/std"]
+std = ["color/std"]
 # Use floating point implementations from libm.
-libm = ["peniko/libm"]
+libm = ["color/libm"]
 # Allow loading a Pixmap from PNG and encoding it back to PNG.
 png = ["std", "dep:png"]
 

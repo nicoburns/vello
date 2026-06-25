@@ -2852,7 +2852,7 @@ name = "pixmap"
 version = "0.0.9"
 dependencies = [
  "bytemuck",
- "peniko",
+ "color",
  "png",
 ]
 
