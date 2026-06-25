@@ -21,23 +21,23 @@ bytemuck = { workspace = true, features = ["derive"] }
 peniko = { workspace = true, features = ["bytemuck"] }
 fearless_simd = { workspace = true }
 hashbrown = { workspace = true, features = ["raw-entry"] }
-png = { workspace = true, optional = true }
 roxmltree = { version = "0.20.0", optional = true }
 smallvec = { workspace = true }
 thiserror = { workspace = true, default-features = false }
 guillotiere = { workspace = true }
 libm = { version = "0.2.16", optional = true }
 log = { workspace = true }
+pixmap = { workspace = true }
 
 [features]
 # If adding new features, also document in `src/lib.rs`
 default = ["std", "png"]
 # Get floating point functions from the standard library (likely using your target's libc).
-std = ["peniko/std", "fearless_simd/std"]
+std = ["peniko/std", "fearless_simd/std", "pixmap/std"]
 # Use floating point implementations from libm.
-libm = ["peniko/libm", "dep:libm", "fearless_simd/libm"]
+libm = ["peniko/libm", "dep:libm", "fearless_simd/libm", "pixmap/libm"]
 # Allow loading Pixmap from PNG, and drawing png glyphs.
-png = ["std", "dep:png"]
+png = ["std", "pixmap/png"]
 # Add helpers for drawing a probe scene.
 probe = []
 # Enable multi-threaded rendering.

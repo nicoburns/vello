@@ -2848,6 +2848,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a89322df9ebe1c1578d689c92318e070967d1042b512afbe49518723f4e6d5cd"
 
 [[package]]
+name = "pixmap"
+version = "0.0.9"
+dependencies = [
+ "bytemuck",
+ "peniko",
+ "png",
+]
+
+[[package]]
 name = "pkg-config"
 version = "0.3.33"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4135,7 +4144,7 @@ dependencies = [
  "libm",
  "log",
  "peniko",
- "png",
+ "pixmap",
  "roxmltree 0.20.0",
  "smallvec",
  "thiserror 2.0.18",

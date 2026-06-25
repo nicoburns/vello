@@ -80,7 +80,6 @@ pub mod paint;
 #[doc(hidden)]
 #[cfg(feature = "pico_svg")]
 pub mod pico_svg;
-pub mod pixmap;
 #[doc(hidden)]
 #[cfg(feature = "probe")]
 pub mod probe;
@@ -97,6 +96,7 @@ pub use fearless_simd;
 pub use peniko;
 pub use peniko::color;
 pub use peniko::kurbo;
+pub use pixmap;
 
 /// A handle to an external, user-provided texture.
 ///
