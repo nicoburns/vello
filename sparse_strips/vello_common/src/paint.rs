@@ -270,7 +270,99 @@ pub struct Tint {
     pub color: Color,
     /// How the tint is applied.
     pub mode: TintMode,
+    /// Luminance-aware text contrast in `[0, 1]`, applied to the coverage of
+    /// [`TintMode::AlphaMask`] tints (i.e. glyphs).
+    ///
+    /// A value of `0` disables the correction. Larger values increase the strength of the
+    /// adjustment. See [`Tint::coverage_gain`] for the model used.
+    pub contrast: f32,
+}
+
+impl Tint {
+    /// Compute the signed coverage-gain factor `k` for luminance-aware text contrast.
+    ///
+    /// This implements a cheap, monotonic, endpoint-preserving approximation of gamma-correct
+    /// text blending. The corrected coverage is
+    ///
+    /// ```text
+    /// a' = a + k * a * (1 - a)
+    /// ```
+    ///
+    /// where `a` is the glyph's anti-aliasing coverage and `k = contrast * (2 * L - 1)`, with `L`
+    /// the (premultiplied) Rec. 709 luminance of the tint color in `[0, 1]`.
+    ///
+    /// Dark text (low `L`) gets `k < 0`, which thins the anti-aliased edges; light text (high `L`)
+    /// gets `k > 0`, which thickens them. This counteracts the perceptual weight shift that occurs
+    /// when compositing in non-linear sRGB space, so text keeps a consistent weight across light
+    /// and dark backgrounds. Returns `0` when no correction should be applied.
+    #[inline]
+    pub fn coverage_gain(&self) -> f32 {
+        if self.contrast == 0.0 || self.mode != TintMode::AlphaMask {
+            return 0.0;
+        }
+        let [r, g, b, _] = self.color.premultiply().components;
+        let luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+        self.contrast * (2.0 * luminance - 1.0)
+    }
 }
 
 /// A kind of paint that can be used for filling and stroking shapes.
 pub type PaintType = peniko::Brush<Image, Gradient>;
+
+#[cfg(test)]
+mod tests {
+    use super::{Color, Tint, TintMode};
+
+    fn tint(color: Color, mode: TintMode, contrast: f32) -> Tint {
+        Tint {
+            color,
+            mode,
+            contrast,
+        }
+    }
+
+    #[test]
+    fn coverage_gain_disabled_when_contrast_zero() {
+        assert_eq!(
+            tint(Color::BLACK, TintMode::AlphaMask, 0.0).coverage_gain(),
+            0.0
+        );
+        assert_eq!(
+            tint(Color::WHITE, TintMode::AlphaMask, 0.0).coverage_gain(),
+            0.0
+        );
+    }
+
+    #[test]
+    fn coverage_gain_only_applies_to_alpha_mask() {
+        assert_eq!(
+            tint(Color::WHITE, TintMode::Multiply, 1.0).coverage_gain(),
+            0.0
+        );
+    }
+
+    #[test]
+    fn coverage_gain_is_luminance_aware() {
+        // Dark text thins the coverage (`k < 0`); light text thickens it (`k > 0`).
+        assert!(tint(Color::BLACK, TintMode::AlphaMask, 1.0).coverage_gain() < 0.0);
+        assert!(tint(Color::WHITE, TintMode::AlphaMask, 1.0).coverage_gain() > 0.0);
+
+        // Pure black/white map to exactly `-contrast`/`+contrast`.
+        assert_eq!(
+            tint(Color::BLACK, TintMode::AlphaMask, 1.0).coverage_gain(),
+            -1.0
+        );
+        assert_eq!(
+            tint(Color::WHITE, TintMode::AlphaMask, 1.0).coverage_gain(),
+            1.0
+        );
+    }
+
+    #[test]
+    fn coverage_gain_scales_with_contrast() {
+        let half = tint(Color::WHITE, TintMode::AlphaMask, 0.5).coverage_gain();
+        let full = tint(Color::WHITE, TintMode::AlphaMask, 1.0).coverage_gain();
+        assert!((half - 0.5).abs() < 1e-6);
+        assert!((full - 1.0).abs() < 1e-6);
+    }
+}

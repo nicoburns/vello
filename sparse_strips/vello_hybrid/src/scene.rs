@@ -237,6 +237,8 @@ pub struct Scene {
     /// process one coarse batch before processing another fast path strip batch.
     /// Only meaningful in [`StripPathMode::Interleaved`] mode.
     pub(crate) coarse_batch_splits: Vec<usize>,
+    /// Luminance-aware text contrast applied to glyph coverage, in `[0, 1]` (`0` disables it).
+    text_contrast: f32,
 }
 
 // We use this macro instead of a method to avoid borrowing issues in the corresponding methods.
@@ -322,6 +324,7 @@ impl Scene {
             fast_strips_buffer: FastStripsBuffer::default(),
             strip_path_mode: StripPathMode::FastOnly,
             coarse_batch_splits: Vec::new(),
+            text_contrast: 0.0,
         }
     }
 
@@ -1035,6 +1038,20 @@ impl Scene {
     /// Clear the tint, so subsequent image paints are drawn without tinting.
     pub fn reset_tint(&mut self) {
         self.render_state.tint = None;
+    }
+
+    /// Set the luminance-aware text contrast applied to glyph coverage.
+    ///
+    /// The value is clamped to `[0, 1]`, where `0` (the default) disables the correction. This
+    /// approximates gamma-correct text blending so that text keeps a consistent perceptual weight
+    /// across light and dark backgrounds. The setting persists across [`Scene::reset`].
+    pub fn set_text_contrast(&mut self, contrast: f32) {
+        self.text_contrast = contrast.clamp(0.0, 1.0);
+    }
+
+    /// Get the luminance-aware text contrast applied to glyph coverage.
+    pub fn text_contrast(&self) -> f32 {
+        self.text_contrast
     }
 
     /// Get the current paint.

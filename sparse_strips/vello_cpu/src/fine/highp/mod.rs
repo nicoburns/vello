@@ -118,11 +118,27 @@ impl<S: Simd> FineKernel<S> for F32Kernel {
 
                 match tint.mode {
                     TintMode::AlphaMask => {
-                        for chunk in dest.chunks_exact_mut(16) {
-                            let pixel = f32x16::from_slice(simd, chunk);
-                            let alphas = pixel.splat_4th();
-                            let tinted = tint_v * alphas;
-                            tinted.store_slice(chunk);
+                        // Luminance-aware text contrast: adjust the glyph coverage `a` to
+                        // `a * (1 + k * (1 - a))` before applying the tint color. See
+                        // `Tint::coverage_gain` for the model. `k == 0` is the uncorrected fast path.
+                        let k = tint.coverage_gain();
+                        if k == 0.0 {
+                            for chunk in dest.chunks_exact_mut(16) {
+                                let pixel = f32x16::from_slice(simd, chunk);
+                                let alphas = pixel.splat_4th();
+                                let tinted = tint_v * alphas;
+                                tinted.store_slice(chunk);
+                            }
+                        } else {
+                            let k_v = f32x16::splat(simd, k);
+                            let one = f32x16::splat(simd, 1.0);
+                            for chunk in dest.chunks_exact_mut(16) {
+                                let pixel = f32x16::from_slice(simd, chunk);
+                                let alphas = pixel.splat_4th();
+                                let corrected = alphas * (one + k_v * (one - alphas));
+                                let tinted = tint_v * corrected;
+                                tinted.store_slice(chunk);
+                            }
                         }
                     }
                     TintMode::Multiply => {

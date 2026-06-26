@@ -378,12 +378,21 @@ pub(crate) fn pack_image_params(
 /// The tint color is premultiplied before packing into a u32 in the same layout
 /// as WGSL `pack4x8unorm`. Returns `(0, 0)` when no tint is specified, which
 /// the shader interprets as "no tint".
+///
+/// The second word holds the [`TintMode`](vello_common::paint::TintMode) discriminant in its low
+/// byte. Its second byte carries the luminance-aware text-contrast coverage gain `k` (see
+/// [`Tint::coverage_gain`](vello_common::paint::Tint::coverage_gain)) quantized as a signed 8-bit
+/// value in units of `1/127`, so the shader can apply the same correction as the CPU pipeline.
 #[inline(always)]
 pub(crate) fn pack_tint(tint: Option<vello_common::paint::Tint>) -> (u32, u32) {
     match tint {
         Some(t) => {
             let color = t.color.premultiply().to_rgba8().to_u32();
-            (color, t.mode.as_u32())
+            // Quantize the coverage gain `k ∈ [-1, 1]` to a signed 8-bit value (`0` => no
+            // correction) and pack it above the tint-mode discriminant.
+            let k_quantized = ((t.coverage_gain().clamp(-1.0, 1.0) * 127.0).round() as i32) as u32;
+            let mode_word = t.mode.as_u32() | ((k_quantized & 0xFF) << 8);
+            (color, mode_word)
         }
         None => (0, 0),
     }

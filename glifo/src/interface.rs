@@ -79,6 +79,15 @@ pub trait GlyphRenderer: DrawSink {
     /// context-dependent colors of COLR glyphs.
     fn get_context_color(&self) -> AlphaColor<Srgb>;
 
+    /// The luminance-aware text contrast applied to outline glyph coverage.
+    ///
+    /// Returns a value in `[0, 1]`, where `0` disables the correction. This is forwarded into the
+    /// [`Tint`] used to draw cached outline glyphs from the atlas. Renderers that support
+    /// gamma-correct text blending override this to expose their configured value.
+    fn text_contrast(&self) -> f32 {
+        0.0
+    }
+
     /// Get the currently active paint.
     fn current_paint(&self) -> &PaintType;
 

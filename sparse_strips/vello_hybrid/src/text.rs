@@ -325,6 +325,11 @@ impl glifo::GlyphRenderer for Scene {
     }
 
     #[inline]
+    fn text_contrast(&self) -> f32 {
+        Self::text_contrast(self)
+    }
+
+    #[inline]
     fn current_paint(&self) -> &PaintType {
         self.paint()
     }

@@ -688,6 +688,7 @@ fn render_sprite(
     ctx.set_tint(tint.map(|color| Tint {
         color,
         mode: TintMode::AlphaMask,
+        contrast: 0.0,
     }));
     ctx.set_transform(Affine::translate((screen_x, screen_y + glyph.y_offset)));
     ctx.set_paint_transform(Affine::translate((-glyph.atlas_x, -glyph.atlas_y)));

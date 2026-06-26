@@ -423,7 +423,11 @@ fn fs_main(
             // When packed_tint is zero (no tint), use identity color vec4(1.0) with
             // Multiply mode so the math reduces to sample_color * 1.0 = sample_color.
             let image_tint = select(vec4<f32>(1.0), unpack4x8unorm(packed_tint), has_tint);
-            let is_multiply = !has_tint || image_texel2.z != TINT_MODE_ALPHA_MASK;
+            // The low byte of the tint word is the tint mode; the next byte is the signed,
+            // quantized luminance-aware text-contrast coverage gain `k` (in units of 1/127).
+            let tint_mode = image_texel2.z & 0xFFu;
+            let text_coverage_gain = f32(i32(image_texel2.z << 16u) >> 24u) * (1.0 / 127.0);
+            let is_multiply = !has_tint || tint_mode != TINT_MODE_ALPHA_MASK;
             let local_xy = sample_xy - image_offset;
             // This offset doesn't exist in vello_cpu, and we use it because 45 degree skewing seems to cause
             // artifacts on the GPU. We have something similar in place for gradients. It might be worth revisiting
@@ -478,8 +482,12 @@ fn fs_main(
                 );
             }
 
+            // Luminance-aware text contrast: adjust the glyph coverage `a` to
+            // `a + k * a * (1 - a)` before applying the tint color (`k == 0` is a no-op).
+            let coverage = sample_color.a;
+            let corrected_coverage = coverage + text_coverage_gain * coverage * (1.0 - coverage);
             final_color = alpha * select(
-                image_tint * sample_color.a,
+                image_tint * corrected_coverage,
                 sample_color * image_tint,
                 is_multiply
             );

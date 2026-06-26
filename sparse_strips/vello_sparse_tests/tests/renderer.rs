@@ -63,6 +63,7 @@ pub(crate) trait Renderer: Sized {
     fn set_mask(&mut self, mask: Mask);
     fn set_paint(&mut self, paint: impl Into<PaintType>);
     fn set_tint(&mut self, tint: Option<Tint>);
+    fn set_text_contrast(&mut self, contrast: f32);
     fn set_paint_transform(&mut self, affine: Affine);
     fn set_fill_rule(&mut self, fill_rule: Fill);
     fn set_transform(&mut self, transform: Affine);
@@ -214,6 +215,10 @@ impl Renderer for CpuRenderer {
 
     fn set_tint(&mut self, tint: Option<Tint>) {
         self.ctx.set_tint(tint);
+    }
+
+    fn set_text_contrast(&mut self, contrast: f32) {
+        self.ctx.set_text_contrast(contrast);
     }
 
     fn set_paint_transform(&mut self, affine: Affine) {
@@ -501,6 +506,10 @@ impl Renderer for HybridRenderer {
 
     fn set_tint(&mut self, tint: Option<Tint>) {
         self.scene.set_tint(tint);
+    }
+
+    fn set_text_contrast(&mut self, contrast: f32) {
+        self.scene.set_text_contrast(contrast);
     }
 
     fn set_paint_transform(&mut self, affine: Affine) {
@@ -877,6 +886,10 @@ impl Renderer for HybridRenderer {
 
     fn set_tint(&mut self, tint: Option<Tint>) {
         self.scene.set_tint(tint);
+    }
+
+    fn set_text_contrast(&mut self, contrast: f32) {
+        self.scene.set_text_contrast(contrast);
     }
 
     fn set_paint_transform(&mut self, affine: Affine) {

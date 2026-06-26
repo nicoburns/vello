@@ -440,6 +440,11 @@ impl glifo::GlyphRenderer for RenderContext {
     }
 
     #[inline]
+    fn text_contrast(&self) -> f32 {
+        self.text_contrast
+    }
+
+    #[inline]
     fn current_paint(&self) -> &PaintType {
         self.paint()
     }

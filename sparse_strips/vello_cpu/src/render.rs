@@ -170,6 +170,8 @@ pub struct RenderContext {
         allow(dead_code, reason = "used when the `text` feature is enabled")
     )]
     pub(crate) render_settings: RenderSettings,
+    /// Luminance-aware text contrast applied to glyph coverage, in `[0, 1]` (`0` disables it).
+    pub(crate) text_contrast: f32,
     dispatcher: Box<dyn Dispatcher>,
 }
 
@@ -239,6 +241,7 @@ impl RenderContext {
             temp_path,
             encoded_paints,
             filter: None,
+            text_contrast: 0.0,
         }
     }
 
@@ -608,6 +611,20 @@ impl RenderContext {
     /// Clear the tint, so subsequent image paints are drawn without tinting.
     pub fn reset_tint(&mut self) {
         self.state.tint = None;
+    }
+
+    /// Set the luminance-aware text contrast applied to glyph coverage.
+    ///
+    /// The value is clamped to `[0, 1]`, where `0` (the default) disables the correction. This
+    /// approximates gamma-correct text blending so that text keeps a consistent perceptual weight
+    /// across light and dark backgrounds. The setting persists across [`RenderContext::reset`].
+    pub fn set_text_contrast(&mut self, contrast: f32) {
+        self.text_contrast = contrast.clamp(0.0, 1.0);
+    }
+
+    /// Get the luminance-aware text contrast applied to glyph coverage.
+    pub fn text_contrast(&self) -> f32 {
+        self.text_contrast
     }
 
     /// Set the blend mode that should be used when drawing objects.

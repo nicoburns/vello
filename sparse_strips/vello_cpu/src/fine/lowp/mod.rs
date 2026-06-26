@@ -170,11 +170,41 @@ impl<S: Simd> FineKernel<S> for U8Kernel {
 
                 match tint.mode {
                     TintMode::AlphaMask => {
-                        for chunk in dest.chunks_exact_mut(32) {
-                            let pixel = u8x32::from_slice(simd, chunk);
-                            let alphas = pixel.splat_4th();
-                            let tinted = tint_v.normalized_mul(alphas);
-                            tinted.store_slice(chunk);
+                        // Luminance-aware text contrast: adjust the glyph coverage `a` to
+                        // `a + k * a * (1 - a)` before applying the tint color. See
+                        // `Tint::coverage_gain` for the model. `k == 0` is the uncorrected fast path.
+                        let k = tint.coverage_gain();
+                        if k == 0.0 {
+                            for chunk in dest.chunks_exact_mut(32) {
+                                let pixel = u8x32::from_slice(simd, chunk);
+                                let alphas = pixel.splat_4th();
+                                let tinted = tint_v.normalized_mul(alphas);
+                                tinted.store_slice(chunk);
+                            }
+                        } else {
+                            // `|k|` in 8-bit fixed point. `k * a * (1 - a)` is bounded such that
+                            // `a + k*a*(1-a)` stays within `[0, 1]`, so the subtraction below never
+                            // underflows (the term is always `<= a`).
+                            let kq = (k.abs() * 255.0 + 0.5) as u8;
+                            let kq_v = u8x32::splat(simd, kq);
+                            let full = u8x32::splat(simd, 255);
+                            let k_positive = k > 0.0;
+                            for chunk in dest.chunks_exact_mut(32) {
+                                let pixel = u8x32::from_slice(simd, chunk);
+                                let alphas = pixel.splat_4th();
+                                let term = alphas.normalized_mul(full - alphas);
+                                let scaled = term.normalized_mul(kq_v);
+                                let corrected = if k_positive {
+                                    simd.narrow_u16x32(
+                                        (simd.widen_u8x32(alphas) + simd.widen_u8x32(scaled))
+                                            .min(u16x32::splat(simd, 255)),
+                                    )
+                                } else {
+                                    alphas - scaled
+                                };
+                                let tinted = tint_v.normalized_mul(corrected);
+                                tinted.store_slice(chunk);
+                            }
                         }
                     }
                     TintMode::Multiply => {

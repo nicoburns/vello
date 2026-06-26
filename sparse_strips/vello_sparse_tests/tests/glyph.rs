@@ -15,8 +15,8 @@ use std::f64::consts::FRAC_PI_4;
 use std::iter;
 use std::sync::Arc;
 use vello_common::color::Srgb;
-use vello_common::color::palette::css::{BLACK, BLUE, GREEN, REBECCA_PURPLE};
-use vello_common::kurbo::{Affine, Diagonal2, Point, Stroke};
+use vello_common::color::palette::css::{BLACK, BLUE, GREEN, REBECCA_PURPLE, WHITE};
+use vello_common::kurbo::{Affine, Diagonal2, Point, Rect, Stroke};
 use vello_common::paint::{Image, PaintType, PremulColor};
 use vello_common::peniko::{
     Blob, Extend, FontData, Gradient, ImageQuality, ImageSampler, LinearGradientPosition,
@@ -131,6 +131,46 @@ fn glyphs_filled_unhinted(ctx: &mut impl Renderer, enable_caching: bool) {
         .font_size(font_size)
         .atlas_cache(enable_caching)
         .hint(false)
+        .fill_glyphs(glyphs.into_iter());
+}
+
+/// Dark text on a light background with luminance-aware text contrast enabled. The correction
+/// thins the anti-aliased coverage of dark glyphs to counteract sRGB-space blending.
+#[vello_test(width = 300, height = 70)]
+fn glyphs_text_contrast_dark_on_light(ctx: &mut impl Renderer) {
+    let font_size: f32 = 50_f32;
+    let (font, glyphs) = layout_glyphs_roboto("Hello, world!", font_size);
+
+    ctx.set_text_contrast(1.0);
+    ctx.set_transform(Affine::translate((0., f64::from(font_size))));
+    ctx.set_paint(BLACK);
+    ctx.glyph_run(&font)
+        .font_size(font_size)
+        .hint(true)
+        .fill_glyphs(glyphs.into_iter());
+}
+
+/// Light text on a dark background with luminance-aware text contrast enabled. The correction
+/// thickens the anti-aliased coverage of light glyphs.
+#[vello_test(width = 300, height = 70)]
+fn glyphs_text_contrast_light_on_dark(ctx: &mut impl Renderer) {
+    let font_size: f32 = 50_f32;
+    let (font, glyphs) = layout_glyphs_roboto("Hello, world!", font_size);
+
+    ctx.set_paint(BLACK);
+    ctx.fill_rect(&Rect::new(
+        0.0,
+        0.0,
+        f64::from(ctx.width()),
+        f64::from(ctx.height()),
+    ));
+
+    ctx.set_text_contrast(1.0);
+    ctx.set_transform(Affine::translate((0., f64::from(font_size))));
+    ctx.set_paint(WHITE);
+    ctx.glyph_run(&font)
+        .font_size(font_size)
+        .hint(true)
         .fill_glyphs(glyphs.into_iter());
 }
 

@@ -539,6 +539,7 @@ fn render_outline_glyph_from_atlas(
         Some(Tint {
             color: tint_color,
             mode: TintMode::AlphaMask,
+            contrast: renderer.text_contrast(),
         }),
     );
 }
