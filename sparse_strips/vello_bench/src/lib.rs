@@ -17,6 +17,7 @@ pub mod pixmap;
 pub mod sort;
 pub mod strip;
 pub mod tile;
+pub mod webpage;
 
 pub(crate) const SEED: [u8; 32] = [0; 32];
 pub static DATA_PATH: LazyLock<PathBuf> =

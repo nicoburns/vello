@@ -21,6 +21,8 @@ smallvec = { workspace = true }
 usvg = { workspace = true }
 
 [features]
+# Enable the multi-threaded variants of the integration benchmarks.
+multithreading = ["vello_cpu/multithreading"]
 
 [[bench]]
 name = "main"
