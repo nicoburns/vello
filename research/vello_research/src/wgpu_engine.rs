@@ -770,7 +770,17 @@ impl WgpuEngine {
         for id in free_images {
             if let Some((texture, _view)) = self.bind_map.image_map.remove(&id) {
                 // TODO: have a pool to avoid needless re-allocation
+                //
+                // In browsers, dropping the handle leaves the GPU texture alive until the
+                // JS garbage collector runs, so we explicitly destroy it. On native, wgpu-core
+                // frees the texture as soon as the last handle is dropped; calling `destroy`
+                // there instead queues per-texture bookkeeping in wgpu-core's deferred
+                // destruction list, which is only drained by `Device::poll` and so grows
+                // without bound for callers that never poll (linebender/vello#1913).
+                #[cfg(target_arch = "wasm32")]
                 texture.destroy();
+                #[cfg(not(target_arch = "wasm32"))]
+                drop(texture);
             }
         }
         Ok(())
