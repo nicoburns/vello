@@ -76,6 +76,49 @@ fn empty_scene(use_cpu: bool) {
     }
 }
 
+/// A blurred rounded rect with a standard deviation of zero is just a sharp rectangle, so if its
+/// edges are on pixel boundaries then every pixel must be either fully covered or fully uncovered.
+///
+/// The rect is drawn through a clip shape which covers the whole image, so that the result only
+/// depends on where the blur is evaluated, and not on the coverage of the clip shape.
+fn zero_blur_pixel_aligned_rect(use_cpu: bool) {
+    const WIDTH: u32 = 40;
+    const HEIGHT: u32 = 30;
+    let rect = Rect::new(8., 6., 29., 19.);
+
+    let mut scene = Scene::new();
+    scene.draw_blurred_rounded_rect_in(
+        &Rect::new(0., 0., WIDTH.into(), HEIGHT.into()),
+        Affine::IDENTITY,
+        rect,
+        palette::css::RED,
+        0.,
+        0.,
+    );
+    let params = TestParams {
+        use_cpu,
+        ..TestParams::new("zero_blur_pixel_aligned_rect", WIDTH, HEIGHT)
+    };
+    let image = vello_research_tests::render_then_debug_sync(&scene, &params).unwrap();
+    assert_eq!(image.format, ImageFormat::Rgba8);
+    assert_eq!((image.width, image.height), (WIDTH, HEIGHT));
+    let coords = (0..HEIGHT).flat_map(|y| (0..WIDTH).map(move |x| (x, y)));
+    for ((x, y), pixel) in coords.zip(image.data.data().chunks_exact(4)) {
+        let inside = rect.contains((f64::from(x) + 0.5, f64::from(y) + 0.5));
+        let expected = if inside {
+            [255, 0, 0, 255]
+        } else {
+            [0, 0, 0, 255]
+        };
+        assert_eq!(
+            pixel,
+            expected,
+            "Pixel ({x}, {y}) should be fully {}",
+            if inside { "covered" } else { "uncovered" }
+        );
+    }
+}
+
 #[test]
 #[cfg_attr(skip_gpu_tests, ignore)]
 fn simple_square_gpu() {
@@ -102,6 +145,20 @@ fn empty_scene_gpu() {
 #[cfg_attr(skip_gpu_tests, ignore)]
 fn empty_scene_cpu() {
     empty_scene(true);
+}
+
+#[test]
+#[cfg_attr(skip_gpu_tests, ignore)]
+fn zero_blur_pixel_aligned_rect_gpu() {
+    zero_blur_pixel_aligned_rect(false);
+}
+
+#[test]
+// The fine shader still requires a GPU, and so we still get a wgpu device
+// skip this for now
+#[cfg_attr(skip_gpu_tests, ignore)]
+fn zero_blur_pixel_aligned_rect_cpu() {
+    zero_blur_pixel_aligned_rect(true);
 }
 
 #[test]

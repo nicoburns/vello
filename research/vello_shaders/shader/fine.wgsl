@@ -1199,8 +1199,8 @@ fn main(
                 let blur_rgba = unpack4x8unorm(blur.rgba_color);
 
                 for (var i = 0u; i < PIXELS_PER_THREAD; i += 1u) {
-                    // Transform fragment location to local 'uv' space of the rounded rectangle.
-                    let my_xy = vec2(xy.x + f32(i), xy.y);
+                    // Transform the pixel center to local 'uv' space of the rounded rectangle.
+                    let my_xy = vec2(xy.x + f32(i) + 0.5, xy.y + 0.5);
                     let local_xy = blur.matrx.xy * my_xy.x + blur.matrx.zw * my_xy.y + blur.xlat;
                     let x = local_xy.x;
                     let y = local_xy.y;
